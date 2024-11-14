@@ -1,0 +1,59 @@
+cabal-version:      2.4
+name:               bluefin-higher-order
+version:            0.1
+license:            MIT
+license-file:       LICENSE
+copyright:          2024 Thomas Bidne
+author:             Thomas Bidne
+maintainer:         tbidne@protonmail.com
+homepage:           https://github.com/tbidne/bluefin-higher-order/
+bug-reports:        https://github.com/tbidne/bluefin-higher-order/issues
+synopsis:           Template
+description:        Template
+category:           Template
+extra-source-files:
+  .gitignore
+  cabal.project
+  README.md
+
+source-repository head
+  type:     git
+  location: https://github.com/tbidne/bluefin-higher-order
+
+common common-lang
+  default-extensions:
+    ImportQualifiedPost
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TypeApplications
+    TypeOperators
+
+  default-language:   Haskell2010
+
+library
+  import:          common-lang
+  exposed-modules:
+    Dynamic1
+    Dynamic2
+    Static
+    Utils
+
+  build-depends:
+    , base              >=4.14.0.0  && <4.21
+    , bluefin           ^>=0.0.10.0
+    , bluefin-internal  ^>=0.0.10.0
+    , unliftio          ^>=0.2.1.0
+
+  hs-source-dirs:  src
+
+executable bluefin-higher-order
+  import:         common-lang
+  main-is:        Main.hs
+  build-depends:
+    , base
+    , bluefin
+    , bluefin-higher-order
+
+  hs-source-dirs: app
+  ghc-options:    -threaded -with-rtsopts=-N

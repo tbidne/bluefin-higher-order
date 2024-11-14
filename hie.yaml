@@ -1,0 +1,8 @@
+---
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:bluefin-higher-order"
+
+    - path: "./app/Main.hs"
+      component: "bluefin-higher-order:exe:bluefin-higher-order"
