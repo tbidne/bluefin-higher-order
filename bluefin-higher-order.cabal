@@ -36,6 +36,7 @@ library
   exposed-modules:
     Dynamic1
     Dynamic2
+    Dynamic3
     Static
     Utils
 
