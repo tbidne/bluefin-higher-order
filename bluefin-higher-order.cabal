@@ -37,6 +37,8 @@ library
     Dynamic1
     Dynamic2
     Dynamic3
+    Reader.Dynamic
+    Reader.Static
     Static
     Utils
 
