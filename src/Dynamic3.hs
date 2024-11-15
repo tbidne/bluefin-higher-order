@@ -16,17 +16,14 @@ where
 import Bluefin.Compound (Handle, mapHandle, useImpl, useImplIn)
 import Bluefin.Eff (Eff, Effects, bracket, (:&), type (:>))
 import Bluefin.IO
-  ( EffReader,
-    IOE,
+  ( IOE,
     effIO,
-    effReader,
-    runEffReader,
+    withEffToIO,
   )
 import Bluefin.Internal (inContext, insertManySecond)
 import Bluefin.State (evalState, get, put)
 import Data.Kind (Type)
 import System.Environment qualified as Env
-import UnliftIO (MonadUnliftIO (withRunInIO))
 import Utils qualified
 
 type Environment :: Effects -> Type
@@ -69,9 +66,9 @@ runEnvironmentIO ioe k =
     MkEnvironment
       { getArgsImpl = effIO ioe Env.getArgs,
         withArgsImpl = \xs eff ->
-          runEffReader ioe $
-            withRunInIO $
-              \runInIO -> Env.withArgs xs (runInIO . toReader $ useImpl eff)
+          withEffToIO
+            (\effToIO -> Env.withArgs xs (effToIO (\_ -> useImpl eff)))
+            ioe
       }
 
 runEnvironmentState ::
@@ -92,9 +89,6 @@ runEnvironmentState initial k =
               (\() -> put args orig)
               (\() -> useImpl eff)
         }
-
-toReader :: Eff es a -> EffReader r es a
-toReader = effReader . const
 
 useArgs ::
   ( e1 :> es,
