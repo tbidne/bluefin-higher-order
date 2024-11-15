@@ -31,7 +31,7 @@ import Utils qualified
 
 type Environment :: Effects -> Type
 data Environment es = MkEnvironment
-  { getArgsImpl :: Eff es [String],
+  { getArgsImpl :: forall e. Eff (e :& es) [String],
     withArgsImpl :: forall a e. [String] -> Eff e a -> Eff (e :& es) a
   }
 
@@ -40,13 +40,13 @@ data Environment es = MkEnvironment
 instance Handle Environment where
   mapHandle e =
     MkEnvironment
-      { getArgsImpl = useImpl (getArgsImpl e),
+      { getArgsImpl = insertManySecond (getArgsImpl e),
         withArgsImpl =
           \xs eff -> insertManySecond (withArgsImpl e xs eff)
       }
 
 getArgs :: forall e es. (e :> es) => Environment e -> Eff es [String]
-getArgs e = useImpl @e @es (getArgsImpl e)
+getArgs e = inContext (getArgsImpl e)
 
 withArgs ::
   forall e es a.
