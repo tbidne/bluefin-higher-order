@@ -6,13 +6,20 @@ module Reader.Dynamic
   )
 where
 
-import Bluefin.Eff (Eff, (:&), type (:>), Effects)
+import Bluefin.Compound
+  ( Handle,
+    makeOp,
+    mapHandle,
+    useImpl,
+    useImplIn,
+    useImplUnder,
+  )
+import Bluefin.Eff (Eff, Effects, (:&), type (:>))
 import Bluefin.IO (IOE, runEff)
+import Data.Kind (Type)
 import Data.List qualified as L
 import Utils qualified
 import Prelude hiding (log)
-import Data.Kind (Type)
-import Bluefin.Compound (useImpl, useImplIn)
 
 -- FIXME: -- Implementing reader
 
@@ -21,10 +28,18 @@ data Reader r es = MkReader
   { askImpl :: Eff es r,
     localImpl ::
       forall e a.
-        (r -> r) ->
-        (Reader r e -> Eff es a) ->
-        Eff (e :& es) a
+      (r -> r) ->
+      (forall e1. Reader r e1 -> Eff (e1 :& e) a) ->
+      Eff (e :& es) a
   }
+
+instance Handle (Reader r) where
+  mapHandle r =
+    MkReader
+      { askImpl = useImpl (askImpl r),
+        localImpl =
+          \f k -> useImplUnder (localImpl r f k)
+      }
 
 ask :: forall r e es. (e :> es) => Reader r e -> Eff es r
 ask e = useImpl (askImpl e)
@@ -35,33 +50,29 @@ local ::
   ) =>
   Reader r e ->
   (r -> r) ->
-  (forall e1. Reader r e1 -> Eff es a) ->
+  (forall e1. Reader r e1 -> Eff (e1 :& es) a) ->
   Eff es a
--- • Couldn't match type ‘es’ with ‘e’ --------------------
---   Expected: Reader r e0 -> Eff e a                     |
---     Actual: Reader r e0 -> Eff es a                    v
-local e f onRdr = error "todo" --useImpl (localImpl e f onRdr)
+local e f onRdr = makeOp (localImpl (mapHandle e) f onRdr)
 
 runReader ::
-  forall r es.
+  forall r a es.
   r ->
-  (forall e. Reader r e -> Eff (e :& es) r) ->
-  Eff es r
+  (forall e. Reader r e -> Eff (e :& es) a) ->
+  Eff es a
 runReader env k =
   useImplIn
     k
     MkReader
       { askImpl = pure env,
-        localImpl = \modEnv onRdr -> error "todo"
+        localImpl = \modEnv onRdr ->
+          runReader (modEnv env) (useImplUnder . onRdr)
       }
-
-{-
 
 -- λ. run
 -- [foo]: something
 -- [foo.doThing]: more logs
 run :: IO ()
-run = runEff $ \ioe -> [] $ \rdr -> foo ioe rdr
+run = runEff $ \ioe -> runReader [] $ \rdr -> foo ioe rdr
 
 addNamespace ::
   forall e es a.
@@ -104,4 +115,3 @@ log io rdr s = do
           "]: ",
           m
         ]
--}
